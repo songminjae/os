@@ -207,6 +207,9 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+///////////////////////
+  priority_issue();
+
   return tid;
 }
 
@@ -247,6 +250,8 @@ thread_unblock (struct thread *t)
   list_insert_ordered(&ready_list, &t->elem, compare_priority, 0);
   t->status = THREAD_READY;
   intr_set_level (old_level);
+
+  //priority_issue();
 }
 
 /* Returns the name of the running thread. */
@@ -346,9 +351,11 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+
+  priority_issue();
 }
 
-/* Returns the current thread's priority. */
+/* Returns the current thread's priority. */ 
 int
 thread_get_priority (void) 
 {
@@ -687,12 +694,7 @@ void thread_awake(int64_t wakeup_tick){
 }
 
 
-
-
-
-
 void update_next_tick_to_awake(int64_t ticks){
-
 
   if(next_tick_to_awake > ticks){
     next_tick_to_awake = ticks;
@@ -705,6 +707,17 @@ int64_t get_next_tick_to_awake(void){
 }
 
 
-bool compare_priority(const struct list_elem *e1, const struct list_elem *e2, void *aux){
-  return (list_entry(e1, struct thread, elem)->priority) > (list_entry(e2, struct thread, elem)->priority);
+bool compare_priority(const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED){
+  return (list_entry(e1, struct thread, elem)->priority) > (list_entry(e2, struct thread, elem)->priority); // >=아님...
+}
+
+
+void priority_issue(void){ // ready_list제일 앞에것이랑 cur의 priority 비교해야함  // cur 혹은 ready_list의 priority 바뀔때마다 호출
+  //ASSERT(!list_empty(&ready_list));
+
+  if (!list_empty(&ready_list)){
+    if(thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority){
+      thread_yield();
+    }
+  }
 }
