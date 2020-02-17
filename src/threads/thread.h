@@ -102,6 +102,11 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
     int64_t wakeup_tick;
+
+    int init_priority;
+    struct lock *wait_on_lock;  // 해당 thread가 대기하고있는 lock 자료구조의 주소 저장
+    struct list donations;  // multiple donation 위해 자기한테 donate한 thread들 리스트 형태로
+    struct list_elem donation_elem;  // list_donations와 관련
   };
 
 /* If false (default), use round-robin scheduler.
@@ -148,7 +153,12 @@ int64_t get_next_tick_to_awake(void);
 void update_next_tick_to_awake(int64_t ticks);
 
 bool compare_priority(const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
+bool compare_donation_priority(const struct list_elem *e1, const struct list_elem *e2, void *aux );
 
 void priority_issue(void);
+
+void donate_priority(void);
+void remove_with_lock(struct lock *removal_lock);
+void refresh_priority(void);
 
 #endif /* threads/thread.h */

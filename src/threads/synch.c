@@ -42,8 +42,8 @@
    - up or "V": increment the value (and wake up one waiting
      thread, if any). */
 void
-sema_init (struct semaphore *sema, unsigned value) 
-{
+sema_init (struct semaphore *sema, unsigned value)  // semaphore 는 자원의 갯수 같은 개념  p/v  (wait/signal) 
+{                                                   // wait은 자원 기다리기, signal은 자원 다썼다.
   ASSERT (sema != NULL);
 
   sema->value = value;
@@ -58,7 +58,7 @@ sema_init (struct semaphore *sema, unsigned value)
    interrupts disabled, but if it sleeps then the next scheduled
    thread will probably turn interrupts back on. */
 void
-sema_down (struct semaphore *sema) 
+sema_down (struct semaphore *sema)  // semaphore를 요청하고 획득했을 때 value--
 {
   enum intr_level old_level;
 
@@ -107,7 +107,7 @@ sema_try_down (struct semaphore *sema)
 
    This function may be called from an interrupt handler. */
 void
-sema_up (struct semaphore *sema) 
+sema_up (struct semaphore *sema)  // semaphore반환하고 value++
 {
   enum intr_level old_level;
 
@@ -181,7 +181,7 @@ sema_test_helper (void *sema_)
    onerous, it's a good sign that a semaphore should be used,
    instead of a lock. */
 void
-lock_init (struct lock *lock)
+lock_init (struct lock *lock)   //sema와 다르게 lock는 하나만 접근 가능
 {
   ASSERT (lock != NULL);
 
@@ -198,14 +198,35 @@ lock_init (struct lock *lock)
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
 void
-lock_acquire (struct lock *lock)
+lock_acquire (struct lock *lock) // lock을 요청 & 낮은 priority의 thread에 자신의 우선순위 기부
 {
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+
+
+  //
+  if(lock->holder != NULL){
+    thread_current()->wait_on_lock = lock;
+
+    struct thread *holding_thread = lock->holder;
+
+    //holding_thread->init_priority = holding_thread->priority;
+    //list_push_back(&holding_thread->donations, &thread_current()->donation_elem);
+    list_insert_ordered(&holding_thread->donations, &thread_current()->donation_elem, compare_priority, 0);
+
+    donate_priority();
+
+  }
+  //
+
   sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
+  ////////
+  //thread_current()->wait_on_lock = NULL;
+  //???????????????????????????????????????????
+  lock->holder = thread_current ();  
+
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -237,10 +258,18 @@ void
 lock_release (struct lock *lock) 
 {
   ASSERT (lock != NULL);
-  ASSERT (lock_held_by_current_thread (lock));
+  ASSERT (lock_held_by_current_thread (lock));  //current thread가 lock 가지고 있을때
+
 
   lock->holder = NULL;
+
+  //refresh_priority();
+  remove_with_lock(lock);
+  refresh_priority();
+
   sema_up (&lock->semaphore);
+
+
 }
 
 /* Returns true if the current thread holds LOCK, false

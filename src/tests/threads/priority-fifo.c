@@ -45,12 +45,13 @@ test_priority_fifo (void)
   msg ("%d threads will iterate %d times in the same order each time.",
        THREAD_CNT, ITER_CNT);
   msg ("If the order varies then there is a bug.");
-
+  //msg("tlqkf!!!!!!!!!!!!!!!!!!!!!!");
   output = op = malloc (sizeof *output * THREAD_CNT * ITER_CNT * 2);
   ASSERT (output != NULL);
   lock_init (&lock);
-
+  
   thread_set_priority (PRI_DEFAULT + 2);
+  msg("tlqkftlqkf");
   for (i = 0; i < THREAD_CNT; i++) 
     {
       char name[16];
@@ -62,11 +63,12 @@ test_priority_fifo (void)
       d->op = &op;
       thread_create (name, PRI_DEFAULT + 1, simple_thread_func, d);
     }
-
+  
   thread_set_priority (PRI_DEFAULT);
   /* All the other threads now run to termination here. */
+  
   ASSERT (lock.holder == NULL);
-
+  
   cnt = 0;
   for (; output < op; output++) 
     {
