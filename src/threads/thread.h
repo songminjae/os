@@ -107,6 +107,9 @@ struct thread
     struct lock *wait_on_lock;  // 해당 thread가 대기하고있는 lock 자료구조의 주소 저장
     struct list donations;  // multiple donation 위해 자기한테 donate한 thread들 리스트 형태로
     struct list_elem donation_elem;  // list_donations와 관련
+
+    int nice; 
+    int recent_cpu;
   };
 
 /* If false (default), use round-robin scheduler.
